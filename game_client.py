@@ -32,10 +32,8 @@ def request(url, name_value_dict):
     
         response = requests.get(req)
         response.raise_for_status()
-        print(f"request: {req}, status_code: {response.status_code}")
 
         rsp = get_xml_value(response.text, 'response')
-        print(f"raw response: {rsp}")
     
         rsp = parse_response(rsp)
         return rsp

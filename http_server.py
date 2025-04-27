@@ -80,6 +80,9 @@ def action_fire(game_id, player, location):
 
         msg = f'to={oponent}, from={player}, game_id={game_id}, action=fire, location={location}'
         push_message(game_id, oponent, msg)
+
+        
+
         response = f'to={player}, game_id={game_id}, status=FIRE_OK'
 
     return response
