@@ -103,7 +103,7 @@ while True:
         elif cell == debris:
           status ='BEEN_THERE'
 
-        request = { 'action': 'fire-report', 'player': player, "game_id":  game_id, "status":status }
+        request = { 'action': 'fire-report', 'player': player, "game_id": game_id, "status":status }
         response = game_client.request(url, request)
 
         print(response)
