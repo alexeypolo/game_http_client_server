@@ -2,6 +2,20 @@ import http.server
 import socketserver
 import urllib.parse
 
+class Game:
+    '''Active game'''
+    def __init__(self, player1, player2):
+        self.players = [player1, player2]
+    
+    def player_exists(self, player):
+        return player in self.players
+    
+    def oponent(self, player):
+        if self.players[0] == player:
+            return self.players[1]
+        return self.players[0]
+
+
 next_game_id = 1
 next_msg_id = 1
 
@@ -29,14 +43,14 @@ def push_message(game_id, player, msg):
     games_outbox[game_id][player].append(msg)
     print(f'push_message: games_outbox={games_outbox}')
 
-def pop_message(game_id, player):
+def action_getmsg(game_id, player):
     try:
         global games_outbox
-        msg = games_outbox[game_id][player].pop(0)
+        response = 'OK, ' + games_outbox[game_id][player].pop(0)
     except:
-        msg = ""
-    print(f'pop_message: games_outbox={games_outbox}, msg="{msg}"')
-    return msg
+        response = 'OK::NONE'
+    
+    return response
 
 def action_start_game(player):
 
@@ -47,7 +61,7 @@ def action_start_game(player):
 
         waiting_games[game_id] = player
         print(f'DBG: waiting_games={waiting_games}')
-        response = f'to={player}, game_id={game_id}, status=WAIT_FOR_OPONENT'
+        response = f'OK, to={player}, game_id={game_id}, game_status=WAIT_FOR_OPONENT'
     else:
         game_id, oponent = waiting_games.popitem()
         print(f'DBG: popped game_id={game_id}, oponent={oponent} from the waiting list')
@@ -55,13 +69,13 @@ def action_start_game(player):
         global active_games, games_outbox
 
         # List a new game and create an empty game_outbox
-        active_games[game_id] = [player, oponent]
+        active_games[game_id] = Game(player, oponent)
         games_outbox[game_id] = { player: [], oponent: []}
 
         # Notify the player and the oponent. Same message is sent to both sides
-        msg = f'game_id={game_id}, status=STARTED'
+        msg = f'game_id={game_id}, game_status=STARTED'
         push_message(game_id, oponent, f'to={oponent}, from={player}, {msg}')
-        response = f'to={player}, from={oponent}, {msg}'
+        response = f'OK, to={player}, from={oponent}, {msg}'
 
     return response
 
@@ -69,26 +83,32 @@ def action_fire(game_id, player, location):
     game = active_games.get(game_id)
 
     if not game:
-        response = 'ERR_GAME_ID_INACTIVE'
-    elif player not in game:
-        response = 'ERR_BAD_PLAYER'
-    else:
-        if game[0] == player:
-            oponent = game[1]
-        else:
-            oponent = game[0]
+        return 'ERR::ACTION_FIRE::GAME_ID_INACTIVE'
+    if game.player_exists(player):
+        return 'ERR::ACTION_FIRE::PLAYER_DOES_NOT_EXIST'
+    
+    oponent = game.oponent(player)
 
-        msg = f'to={oponent}, from={player}, game_id={game_id}, action=fire, location={location}'
-        push_message(game_id, oponent, msg)
+    msg = f'to={oponent}, from={player}, game_id={game_id}, action=fire, location={location}'
+    push_message(game_id, oponent, msg)
 
-        
+    return f'OK, to={player}, game_id={game_id}'
 
-        response = f'to={player}, game_id={game_id}, status=FIRE_OK'
+def action_fire_report(game_id, player, location, cell_state):
+    game = active_games.get(game_id)
 
-    return response
+    if not game:
+        return 'ERR::ACTION_FIRE_REPORT::GAME_ID_INACTIVE'
+    if game.player_exists(player):
+        return 'ERR::ACTION_FIRE_REPORT::PLAYER_DOES_NOT_EXIST'
+    
+    oponent = game.oponent(player)
 
-def action_getmsg(game_id, player):
-    return pop_message(game_id, player)
+    msg = f'to={oponent}, game_id={game_id}, location={location}, cell_state={cell_state}'
+    push_message(game_id, oponent, msg)
+
+    return f'OK, to={player}, game_id={game_id}'
+
 
 class GameServer(http.server.BaseHTTPRequestHandler):
 
@@ -101,33 +121,32 @@ class GameServer(http.server.BaseHTTPRequestHandler):
         game_id = values.get('game_id')
         player = values.get('player')
         location = values.get('location')
+        cell_state = values.get('cell_state')
 
         if action == 'start_game':
-            if player:
-                response = action_start_game(player)
-            else:
-                response = 'ERR_MISSING_PLAYER'            
-        elif action == 'fire':
             if not player:
-                response = 'ERR_MISSING_PLAYER'
-            elif not game_id:
-                response = 'ERR_MISSING_GAME_ID'
-            elif not location:
-                response = 'ERR_MISSING_LOCATION'
+                response = 'ERR::MISSING_PARAM'
+            else:
+                response = action_start_game(player)
+        elif action == 'fire':
+            if None in [game_id, player, location]:
+                response = 'ERR::MISSING_PARAM'
             else:
                 response = action_fire(game_id, player, location)
+        elif action == 'fire-report':
+            if None in [game_id, player, location, cell_state]:
+                response = 'ERR::MISSING_PARAM'
+            else:
+                response = action_fire_report(game_id, player, location, cell_state)
         elif action == 'getmsg':
-            if not player:
-                response = 'ERR_MISSING_PLAYER'
-            elif not game_id:
-                response = 'ERR_MISSING_GAME_ID'
+            if None in [game_id, player]:
+                response = 'ERR::MISSING_PARAM'
             else:
                 response = action_getmsg(game_id, player)
         else:
-            response = f'ERR_BAD_ARGS'
+            response = f'ERR::UNKNOWN_ACTION'
 
-        if response.startswith('ERR_'):
-            response = f'status={response}'
+        response = f'action={action}, status={response}'
 
         self.send_response(200)
         self.send_header('Content-type', 'text/html')

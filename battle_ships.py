@@ -62,22 +62,23 @@ request = { 'action': 'start_game', 'player': player}
 response = game_client.request(url, request)
 my_turn = False
 
+print(f'DBG: response={response}')
 game_id = response['game_id']
 
-if response['status'] == "WAIT_FOR_OPONENT":
+if response['game_status'] == "WAIT_FOR_OPONENT":
   print("""
                           ЖДИ ИГРОКА...""")
   while True:
     request = { 'action': 'getmsg', 'player': player, "game_id":  game_id}
     response = game_client.request(url, request)
-    if len(response) != 0 and response['status']=='STARTED':
+    if response['status'] == 'OK' and response['game_status']=='STARTED':
       break  
   my_turn=True
-elif response['status'] == 'STARTED':
+elif response['game_status'] == 'STARTED':
   my_turn=False
 
 print("""                         
-                         НГРА НАЧЕТА!!!""")
+                         НГРА НАЧАТА!!!""")
 while True:
   if my_turn:
     print("ВАШ ХОД:")
@@ -85,25 +86,24 @@ while True:
     request = { 'action': 'fire', 'player': player, "game_id":  game_id, 'location': loc}
     response = game_client.request(url, request)
 
-
   else:
     print("ХОД СОПЕРНИКА")
     while True:
       request = { 'action': 'getmsg', 'player': player, "game_id":  game_id }
       response = game_client.request(url, request)
-      if response != {}:
-        loc=response['location']
-        column=ord(loc[0].lower()) - ord('a')         
-        row=ord(loc[1].lower()) - ord('1')
-        cell=sea[row][column]
-        if cell==water:
-          status='miss'
-        elif cell==ship:
-          status='hit'
+      if response['status'] == 'OK':
+        loc = response['location']
+        column = ord(loc[0].lower()) - ord('a')         
+        row = ord(loc[1].lower()) - ord('1')
+        cell = sea[row][column]
+        if cell == water:
+          cell_state = 'miss'
+        elif cell == ship:
+          cell_state = 'hit'
         elif cell == debris:
-          status ='BEEN_THERE'
+          cell_state = 'BEEN_THERE'
 
-        request = { 'action': 'fire-report', 'player': player, "game_id": game_id, "status":status }
+        request = { 'action': 'fire-report', 'player': player, "game_id": game_id, "cell_state":cell_state }
         response = game_client.request(url, request)
 
         print(response)
