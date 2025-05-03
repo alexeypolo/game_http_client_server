@@ -4,8 +4,10 @@ import urllib.parse
 
 class Game:
     '''Active game'''
-    def __init__(self, player1, player2):
+    def __init__(self, game_id, player1, player2):
+        self.game_id = game_id
         self.players = [player1, player2]
+        print(f'Create game_id={self.game_id}, players={self.players}')
     
     def player_exists(self, player):
         return player in self.players
@@ -69,7 +71,7 @@ def action_start_game(player):
         global active_games, games_outbox
 
         # List a new game and create an empty game_outbox
-        active_games[game_id] = Game(player, oponent)
+        active_games[game_id] = Game(game_id, player, oponent)
         games_outbox[game_id] = { player: [], oponent: []}
 
         # Notify the player and the oponent. Same message is sent to both sides
@@ -81,25 +83,28 @@ def action_start_game(player):
 
 def action_fire(game_id, player, location):
     game = active_games.get(game_id)
+    print(f'DBG: action_fire, game_id={game_id}, player={player}, location={location}')
 
     if not game:
-        return 'ERR::ACTION_FIRE::GAME_ID_INACTIVE'
-    if game.player_exists(player):
-        return 'ERR::ACTION_FIRE::PLAYER_DOES_NOT_EXIST'
+        response = 'ERR::ACTION_FIRE::GAME_ID_INACTIVE'
+    elif not game.player_exists(player):
+        response = 'ERR::ACTION_FIRE::PLAYER_DOES_NOT_EXIST'
+    else:
+        oponent = game.oponent(player)
+
+        msg = f'to={oponent}, from={player}, game_id={game_id}, action=fire, location={location}'
+        push_message(game_id, oponent, msg)
+
+        response = f'OK, to={player}, game_id={game_id}'
     
-    oponent = game.oponent(player)
-
-    msg = f'to={oponent}, from={player}, game_id={game_id}, action=fire, location={location}'
-    push_message(game_id, oponent, msg)
-
-    return f'OK, to={player}, game_id={game_id}'
+    print(f'DBG: action_fire, response: {response}')
 
 def action_fire_report(game_id, player, location, cell_state):
     game = active_games.get(game_id)
 
     if not game:
         return 'ERR::ACTION_FIRE_REPORT::GAME_ID_INACTIVE'
-    if game.player_exists(player):
+    if not game.player_exists(player):
         return 'ERR::ACTION_FIRE_REPORT::PLAYER_DOES_NOT_EXIST'
     
     oponent = game.oponent(player)
@@ -115,7 +120,7 @@ class GameServer(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         url = self.path
         values = parse_url_qs(url)
-        print(f'GET: {url}, parsed: {values}')
+        # print(f'GET: {url}, parsed: {values}')
 
         action = values.get('action')
         game_id = values.get('game_id')
@@ -156,6 +161,8 @@ class GameServer(http.server.BaseHTTPRequestHandler):
         output += "</body></html>"
         self.wfile.write(bytes(output, "utf8"))
 
+    def log_message(self, format, *args):
+        return
 
 PORT = 9000
 with socketserver.TCPServer(("", PORT), GameServer) as httpd:

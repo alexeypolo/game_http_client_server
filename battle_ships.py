@@ -80,19 +80,23 @@ elif response['game_status'] == 'STARTED':
 print("""                         
                          НГРА НАЧАТА!!!""")
 while True:
-  if my_turn:
+  if my_turn == True:
+    my_turn=False
     print("ВАШ ХОД:")
     loc = input()
     request = { 'action': 'fire', 'player': player, "game_id":  game_id, 'location': loc}
     response = game_client.request(url, request)
 
   else:
+    my_turn=True
     print("ХОД СОПЕРНИКА")
     while True:
       request = { 'action': 'getmsg', 'player': player, "game_id":  game_id }
       response = game_client.request(url, request)
       if response['status'] == 'OK':
         loc = response['location']
+        print(f'Стреляют по {loc}')
+
         column = ord(loc[0].lower()) - ord('a')         
         row = ord(loc[1].lower()) - ord('1')
         cell = sea[row][column]
@@ -103,10 +107,9 @@ while True:
         elif cell == debris:
           cell_state = 'BEEN_THERE'
 
-        request = { 'action': 'fire-report', 'player': player, "game_id": game_id, "cell_state":cell_state }
+        request = { 'action': 'fire-report', 'player': player, "game_id": game_id, 'location':loc,"cell_state":cell_state }
         response = game_client.request(url, request)
 
-        print(response)
-       
-  
-  my_turn=not my_turn
+        print(f'DBG: request={request}, response={response}')
+        break
+        
