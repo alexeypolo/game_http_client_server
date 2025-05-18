@@ -8,10 +8,10 @@ class Game:
         self.game_id = game_id
         self.players = [player1, player2]
         print(f'Create game_id={self.game_id}, players={self.players}')
-    
+
     def player_exists(self, player):
         return player in self.players
-    
+
     def oponent(self, player):
         if self.players[0] == player:
             return self.players[1]
@@ -43,15 +43,16 @@ def push_message(game_id, player, msg):
 
     msg = f'msg_id={msg_id}, {msg}'
     games_outbox[game_id][player].append(msg)
-    print(f'push_message: games_outbox={games_outbox}')
+    print(f'DBG: push_message: games_outbox[{game_id}][{player}]={games_outbox[game_id][player]}')
 
 def action_getmsg(game_id, player):
     try:
         global games_outbox
         response = 'OK, ' + games_outbox[game_id][player].pop(0)
+        print(f'DBG: getmsg: games_outbox[{game_id}][{player}], response="{response}"')
     except:
         response = 'OK::NONE'
-    
+
     return response
 
 def action_start_game(player):
@@ -67,7 +68,7 @@ def action_start_game(player):
     else:
         game_id, oponent = waiting_games.popitem()
         print(f'DBG: popped game_id={game_id}, oponent={oponent} from the waiting list')
-    
+
         global active_games, games_outbox
 
         # List a new game and create an empty game_outbox
@@ -96,7 +97,7 @@ def action_fire(game_id, player, location):
         push_message(game_id, oponent, msg)
 
         response = f'OK, to={player}, game_id={game_id}'
-    
+
     print(f'DBG: action_fire, response: {response}')
 
 def action_fire_report(game_id, player, location, cell_state):
@@ -106,10 +107,10 @@ def action_fire_report(game_id, player, location, cell_state):
         return 'ERR::ACTION_FIRE_REPORT::GAME_ID_INACTIVE'
     if not game.player_exists(player):
         return 'ERR::ACTION_FIRE_REPORT::PLAYER_DOES_NOT_EXIST'
-    
+
     oponent = game.oponent(player)
 
-    msg = f'to={oponent}, game_id={game_id}, location={location}, cell_state={cell_state}'
+    msg = f'to={oponent}, game_id={game_id}, action=fire-report, location={location}, cell_state={cell_state}'
     push_message(game_id, oponent, msg)
 
     return f'OK, to={player}, game_id={game_id}'

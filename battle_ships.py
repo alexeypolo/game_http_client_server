@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import sys
 import game_client
 import random
@@ -54,6 +55,7 @@ for i in range(8):
               sea[i][j] = ship
             oponent_sea[i][j] = fog
             
+os.system('clear')
 print_sea(sea, oponent_sea)
 url='http://localhost:9000'
 player=sys.argv[1]
@@ -78,14 +80,26 @@ elif response['game_status'] == 'STARTED':
   my_turn=False
 
 print("""                         
-                         НГРА НАЧАТА!!!""")
+                         ИГРА НАЧАТА!!!""")
 while True:
+  os.system('clear')
+  print_sea(sea, oponent_sea)
+
   if my_turn == True:
     my_turn=False
     print("ВАШ ХОД:")
     loc = input()
     request = { 'action': 'fire', 'player': player, "game_id":  game_id, 'location': loc}
     response = game_client.request(url, request)
+    while True:
+      request = { 'action': 'getmsg', 'player': player, "game_id":  game_id }
+      response = game_client.request(url, request)
+      if response['status'] == 'OK':
+         if response['action']=='fire-report':
+            loc=response['location']
+            cs=response['cell_state']
+            print(loc,cs)
+            break
 
   else:
     my_turn=True
