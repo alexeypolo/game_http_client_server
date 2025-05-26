@@ -59,7 +59,7 @@ print_sea(sea, oponent_sea)
 
 player = sys.argv[1]
 if len(sys.argv) > 2:
-   url=sys.argv
+   url=sys.argv[2]
 else:
    url='http://localhost:9000'
 
