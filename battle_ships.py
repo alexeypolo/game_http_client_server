@@ -5,13 +5,12 @@ import game_client
 import random
 from helper import *
 
-fire='💥'
-debris='🗡️'
-ship="🛳️"
-miss="🤪"
-water='🌊'
-fog='🌫️'
-bomb='🧨'
+fire = ord('💥')
+debris = 0x1F5E1 # 🗡️
+ship = 0x1F6F3 # 🛳️
+water = ord('🌊')
+fog = 0x1F32B # 🌫️
+bomb = ord('🧨')
 
 sea=[
       [0,0,0,0,0,0,0,0],
@@ -57,14 +56,18 @@ for i in range(8):
             
 os.system('clear')
 print_sea(sea, oponent_sea)
-url='http://localhost:9000'
-player=sys.argv[1]
+
+player = sys.argv[1]
+if len(sys.argv) > 2:
+   url=sys.argv
+else:
+   url='http://localhost:9000'
 
 request = { 'action': 'start_game', 'player': player}
 response = game_client.request(url, request)
 my_turn = False
 
-print(f'DBG: response={response}')
+
 game_id = response['game_id']
 
 if response['game_status'] == "WAIT_FOR_OPONENT":
@@ -97,13 +100,23 @@ while True:
       if response['status'] == 'OK':
          if response['action']=='fire-report':
             loc=response['location']
-            cs=response['cell_state']
-            print(loc,cs)
+            cell_state=int(response['cell_state'])
+
+            column = ord(loc[0].lower()) - ord('a')         
+            row = ord(loc[1].lower()) - ord('1')
+            oponent_sea[row][column] = cell_state
+
+
+            n = count_cells(oponent_sea, debris)
+            if n==8:
+               print('ПОБЕДА!!')
+               input()
+
             break
 
   else:
     my_turn=True
-    print("ХОД СОПЕРНИКА")
+    print("ХОД СОПЕРНИКА:")
     while True:
       request = { 'action': 'getmsg', 'player': player, "game_id":  game_id }
       response = game_client.request(url, request)
@@ -114,16 +127,12 @@ while True:
         column = ord(loc[0].lower()) - ord('a')         
         row = ord(loc[1].lower()) - ord('1')
         cell = sea[row][column]
+
         if cell == water:
-          cell_state = 'miss'
+          sea[row][column] = fire
         elif cell == ship:
-          cell_state = 'hit'
-        elif cell == debris:
-          cell_state = 'BEEN_THERE'
+          sea[row][column] = debris 
 
-        request = { 'action': 'fire-report', 'player': player, "game_id": game_id, 'location':loc,"cell_state":cell_state }
+        request = { 'action': 'fire-report', 'player': player, "game_id": game_id, 'location':loc,"cell_state":sea[row][column]}
         response = game_client.request(url, request)
-
-        print(f'DBG: request={request}, response={response}')
         break
-        
