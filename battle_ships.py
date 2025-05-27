@@ -11,7 +11,7 @@ ship = 0x1F6F3 # 🛳️
 water = ord('🌊')
 fog = 0x1F32B # 🌫️
 bomb = ord('🧨')
-
+circle =0x2B55 # ⭕️
 sea=[
       [0,0,0,0,0,0,0,0],
       [0,0,0,0,0,0,0,0],
@@ -105,6 +105,11 @@ while True:
             column = ord(loc[0].lower()) - ord('a')         
             row = ord(loc[1].lower()) - ord('1')
             oponent_sea[row][column] = cell_state
+
+
+            if cell_state == debris:
+               mark_circles(oponent_sea,row,column)
+
 
             n = count_cells(oponent_sea, debris)
             if n==8:
