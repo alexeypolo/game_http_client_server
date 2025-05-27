@@ -106,7 +106,6 @@ while True:
             row = ord(loc[1].lower()) - ord('1')
             oponent_sea[row][column] = cell_state
 
-
             n = count_cells(oponent_sea, debris)
             if n==8:
                print('ПОБЕДА!!')
@@ -116,7 +115,7 @@ while True:
 
   else:
     my_turn=True
-    print("ХОД СОПЕРНИКА:")
+    print("                    ХОД СОПЕРНИКА:")
     while True:
       request = { 'action': 'getmsg', 'player': player, "game_id":  game_id }
       response = game_client.request(url, request)
@@ -135,4 +134,10 @@ while True:
 
         request = { 'action': 'fire-report', 'player': player, "game_id": game_id, 'location':loc,"cell_state":sea[row][column]}
         response = game_client.request(url, request)
+
+        n = count_cells(sea, debris)
+        if n==8:
+          print('                   ПОРАЖЕНИЕ☠️ ☠️')
+          input()
+
         break
