@@ -113,7 +113,7 @@ while True:
 
             n = count_cells(oponent_sea, debris)
             if n==8:
-               print('ПОБЕДА!!')
+               print('ПОБЕДА🏆🏆')
                input()
 
             break
