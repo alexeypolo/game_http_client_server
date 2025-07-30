@@ -82,7 +82,7 @@ if response['game_status'] == "WAIT_FOR_OPONENT":
 elif response['game_status'] == 'STARTED':
   my_turn=False
 
-print("""                         
+print("""
                          ИГРА НАЧАТА!!!""")
 while True:
   os.system('clear')
@@ -128,7 +128,7 @@ while True:
         loc = response['location']
         print(f'Стреляют по {loc}')
 
-        column = ord(loc[0].lower()) - ord('a')         
+        column = ord(loc[0].lower()) - ord('a')
         row = ord(loc[1].lower()) - ord('1')
         cell = sea[row][column]
 
